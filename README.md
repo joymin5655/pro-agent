@@ -27,7 +27,7 @@ Claude Code의 기본 모델은 요금제마다 다릅니다. 공식 문서에�
 
 출처: [Errors](https://code.claude.com/docs/en/errors#claude-opus-is-not-available-with-the-claude-pro-plan)
 
-두 문서가 서로 맞지 않고, 만든 사람에게는 시험해 볼 Pro 계정이 없어 실제로 어떤지 확인하지 못했습니다. 그래서 이 키트는 메인 모델을 Sonnet으로 고정하고, Opus가 안 될 때는 Sonnet이 대신 판정하게 만들었습니다. 내 계정에서 Opus가 되는지는 설치 뒤 `/pro-agent:setup`의 연결 시험으로 확인할 수 있습니다.
+두 문서가 서로 맞지 않고, 만든 사람에게는 시험해 볼 Pro 계정이 없어 실제로 어떤지 확인하지 못했습니다. 그래서 이 키트는 메인 모델을 Sonnet으로 고정하고 Opus가 안 될 때는 Sonnet이 대신 판정하게 만들었습니다. 내 계정에서 Opus가 되는지는 설치 뒤 `/pro-agent:setup`의 연결 시험으로 확인할 수 있습니다.
 
 Opus는 결정이 필요한 순간에만 씁니다. 자문 기능(advisor) 문서는 이렇게 설명합니다.
 
@@ -66,13 +66,13 @@ flowchart LR
 - 내가 중요하다고 말했습니다
 
 judge는 계획 승인, 큰 결정, 최종 판정에만 부릅니다. 그 밖의 일에는 부르지 않습니다.
-Opus를 쓸 수 없는 계정이면 같은 요청을 Sonnet으로 다시 보내고, 판정 앞에 "(Opus 대신 Sonnet 판정)"을 붙입니다.
+Opus를 쓸 수 없는 계정이면 같은 요청을 Sonnet으로 다시 보내고 판정 앞에 "(Opus 대신 Sonnet 판정)"을 붙입니다.
 
 ## 설치 (3분)
 
 ### 0) 준비
 
-아래 설치 한 줄은 Claude Code 2.1.275 이상에서 됩니다. 버전은 `claude --version`으로 보고, 낮으면 `claude update`로 올리거나 아래의 두 단계 방법을 쓰세요.
+아래 설치 한 줄은 Claude Code 2.1.275 이상에서 됩니다. 버전은 `claude --version`으로 보고 낮으면 `claude update`로 올리거나 아래의 두 단계 방법을 쓰세요.
 처음이라면 [빠른 시작](https://code.claude.com/docs/en/quickstart)이나 [데스크톱 앱 빠른 시작](https://code.claude.com/docs/en/desktop-quickstart)을 먼저 보세요.
 
 ### 1) 설치 한 줄
@@ -114,16 +114,16 @@ claude plugin install pro-agent --marketplace joymin5655/pro-agent
 /pro-agent:setup
 ```
 
-모델 설정을 읽어 보고, 필요하면 바꿀 방법을 알려 줍니다. 원하면 Opus 연결 시험도 합니다. 시험은 Opus를 조금 쓰므로 먼저 물어봅니다.
+모델 설정을 읽어 보고 필요하면 바꿀 방법을 알려 줍니다. 원하면 Opus 연결 시험도 합니다. 시험은 Opus를 조금 쓰므로 먼저 물어봅니다.
 
 ### 4) claude.ai, 데스크톱 앱 채팅, Cowork에서 설치
 
 Customize > Plugins → Add → Add marketplace → `joymin5655/pro-agent` 입력 → pro-agent 선택 → Add 순서입니다.
-플러그인은 계정에 저장됩니다. 같은 계정으로 로그인한 Claude Code에서는 다음 세션을 시작할 때 동기화된 플러그인으로 내려받아지고, `/reload-plugins`로 바로 적용할 수 있습니다.
+플러그인은 계정에 저장됩니다. 같은 계정으로 로그인한 Claude Code는 다음 세션을 시작할 때 이 플러그인을 동기화해 내려받습니다. 그 세션에서 `/reload-plugins`를 치거나 Claude Code를 다시 시작하면 불러옵니다.
 끄거나 지우려면 Customize > Plugins에서 합니다. 출처가 믿을 만한 플러그인만 추가하세요. URL로 추가한 장터(marketplace) 플러그인은 Anthropic이 검토하지 않는다고 안내 페이지에 적혀 있습니다.
 출처: [Plugins overview](https://claude.com/docs/plugins/overview)
 
-어디서 무엇이 동작하는지는 다음과 같습니다.
+어디서 무엇이 동작하는지 아래 표로 정리했습니다.
 
 | 기능 | Claude Code | Cowork | 일반 채팅 |
 |---|---|---|---|
@@ -165,49 +165,47 @@ claude.ai/code 같은 클라우드 세션은 내 컴퓨터에 설치한 플러�
 
 ## 자주 묻는 것
 
-**"Claude Opus is not available with the Claude Pro plan." 오류가 나요.**
+**"Claude Opus is not available with the Claude Pro plan." 오류가 나요.**\
 judge는 자동으로 Sonnet으로 다시 시도합니다. 자문은 `/advisor sonnet`이나 `/advisor off`로 바꾸세요. 메인 모델이 문제라면 `/model sonnet`을 입력합니다.
 참고로 API가 자문 조합을 거부하면 Claude Code는 자문 없이 그 요청을 다시 보내고 조용히 이어 갑니다. 자문이 꺼진 것 같으면 `/advisor`만 쳐서 현재 자문을 확인하세요.
 
-**큰 계획만 Opus로 하고 싶어요.**
-`opusplan` 설정이 있습니다. 계획 모드에서는 `opus`, 실행에서는 `sonnet`을 씁니다. 키트의 기본값은 아니고, Opus를 쓸 수 있어야 합니다. ([opusplan](https://code.claude.com/docs/en/model-config#opusplan-model-setting))
+**큰 계획만 Opus로 하고 싶어요.**\
+`opusplan` 설정이 있습니다. 계획 모드에서는 `opus`, 실행에서는 `sonnet`을 씁니다. 키트의 기본값은 아니고 Opus를 쓸 수 있어야 합니다. ([opusplan](https://code.claude.com/docs/en/model-config#opusplan-model-setting))
 
-**업데이트, 끄기, 지우기는요?**
-Claude Code에서는 `/plugin`의 Installed 탭에서 켜고, 끄고, 업데이트하고, 지울 수 있습니다. 터미널은 `claude plugin update pro-agent@pro-agent`(다시 시작해야 적용), `claude plugin uninstall pro-agent@pro-agent`입니다. 대화 중 바로 반영하려면 `/reload-plugins`를 씁니다. 데스크톱 앱의 Code 탭은 프롬프트 상자 옆 `+` → Add plugins(또는 Plugins → Manage plugins)에서 합니다. 채팅·Cowork는 Customize > Plugins입니다.
+**업데이트, 끄기, 지우기는요?**\
+Claude Code에서는 `/plugin`의 Installed 탭에서 켜고 끄고 업데이트하고 지울 수 있습니다. 터미널은 `claude plugin update pro-agent@pro-agent`(다시 시작해야 적용), `claude plugin uninstall pro-agent@pro-agent`입니다. 대화 중 바로 반영하려면 `/reload-plugins`를 씁니다. 데스크톱 앱의 Code 탭은 프롬프트 상자 옆 `+` → Add plugins(또는 Plugins → Manage plugins)에서 합니다. 채팅·Cowork는 Customize > Plugins입니다.
 
-**채팅, Cowork, 클라우드 세션에서는요?**
+**채팅, Cowork, 클라우드 세션에서는요?**\
 채팅은 스킬만, Cowork는 스킬·명령·보조 AI·자동 점검 장치(hook)까지, 클라우드 세션은 아무것도 불러오지 않습니다. 위 설치 4)와 5)를 보세요.
 
-**막힌 명령을 꼭 실행해야 하면요?**
+**막힌 명령을 꼭 실행해야 하면요?**\
 명령을 확인한 뒤 내 터미널에서 직접 실행하세요. 자세한 내용은 [docs/safety.md](docs/safety.md)에 있습니다.
 
-**내 데이터는 어디에 있나요?**
+**내 데이터는 어디에 있나요?**\
 계획과 진행 메모는 프로젝트의 `agent-notes` 폴더에만 저장됩니다. 키트의 자동 점검 장치는 아무것도 밖으로 보내지 않습니다. 다만 조사(research)를 맡기면 scout가 웹 검색을 합니다.
 
 ## 추천 유튜브 채널
 
-Claude와 AI로 일하는 법을 더 알고 싶다면 이 세 채널을 추천합니다. 위에서부터 보시면 좋습니다.
+제가 챙겨 보는 채널들인데, Claude와 AI로 일하는 법을 더 알고 싶다면 이 세 곳을 추천합니다. 위에서부터 보시면 됩니다.
 
-1. **양실장의 바이브코딩대학** — https://www.youtube.com/@VibecodingUniversity
-   처음 시작하는 분께 맞습니다. 비개발자 눈높이로 바이브코딩 기초와 회사 업무에 AI를 들이는 방법(AX)을 다룹니다.
-2. **실밸개발자** — https://www.youtube.com/@sv.developer
-   Claude Code를 깊게 쓰고 싶을 때 봅니다. 입문부터 심화까지 묶은 통합 강의, Cowork 가이드, 하네스 세팅 영상이 있고,
-   "AI를 기존 방식에 얹지 마세요"처럼 일하는 방식을 다룬 영상도 좋습니다.
-3. **커리어해커 알렉스** — https://www.youtube.com/@careerhackeralex
-   AI로 일하는 방식 자체를 바꾸고 싶을 때 봅니다. "AI 처음이라면, 설치 없이 말로 시작하는 첫 30분",
-   비개발자를 위한 AI 구독료 기준 같은 영상이 있습니다. 실밸개발자와 함께한 AI 토크도 있습니다.
+1. **[양실장의 바이브코딩대학](https://www.youtube.com/@VibecodingUniversity)**\
+   처음이라면 여기부터입니다. 비개발자 눈높이에서 바이브코딩 기초부터 회사 업무에 AI를 들이는 방법(AX)까지 다루는데, 기술 배경이 없어도 따라가기 좋습니다.
+2. **[실밸개발자](https://www.youtube.com/@sv.developer)**\
+   Claude Code를 제대로 써 보고 싶어지면 이 채널입니다. 입문부터 심화까지 묶은 통합 강의가 있고, Cowork 가이드랑 하네스 세팅 영상도 있습니다. 일하는 방식 자체를 다룬 "AI를 기존 방식에 얹지 마세요" 영상도 같이 보시면 좋습니다.
+3. **[커리어해커 알렉스](https://www.youtube.com/@careerhackeralex)**\
+   AI로 일하는 방식을 아예 바꿔 보고 싶을 때 봅니다. "AI 처음이라면, 설치 없이 말로 시작하는 첫 30분"이나 비개발자를 위한 AI 구독료 기준 같은 영상이 있습니다. 실밸개발자와 함께한 AI 토크도 있어서 2번 채널과 이어서 보기 좋습니다.
 
 ## 만든 사람의 꿀팁
 
-이 키트를 만들면서 직접 겪고 정리한 것들입니다.
+이 키트를 만들면서 직접 겪은 것들인데, 그냥 넘기기 아까운 것만 추렸습니다.
 
-1. **보조 AI를 부를 때는 모델을 꼭 적으세요.** 안 적으면 메인 모델을 그대로 물려받습니다. 제 작업 기록을 점검해 보니 맡긴 일 7건이 모두 가장 비싼 모델로 돌고 있었습니다.
-2. **작은 일은 맡기지 마세요.** 맡기고 보고받는 데도 사용량이 듭니다. 파일 한두 개 읽는 일은 직접 하는 편이 쌉니다.
-3. **꼭 지켜야 하는 규칙은 글로만 두지 말고 자동 점검 장치(hook)로 만드세요.** 비밀값 검사 설정 파일은 있는데 실제 검사는 한 번도 돌지 않던 저장소를 뒤늦게 발견한 적이 있습니다.
-4. **"다 됐어요"는 실행 결과로 받으세요.** 확인하지 못한 것은 "확인 못 함"이라고 쓰게 하세요. 이 키트의 check가 그 일을 합니다.
-5. **한도에 닿기 전에 진행 메모를 남기세요.** 대화가 끊겨도 파일에 남은 메모로 바로 이어 갈 수 있습니다.
-6. **결정은 선택지와 추천으로 받으세요.** "어떻게 할까요?"보다 "A(추천), B, C 중 고르세요"가 빠르고 덜 헷갈립니다.
-7. **절약 도구의 홍보 숫자는 직접 재 보세요.** 제가 쓰던 사용량 절약 도구는 실제로 재 보니 2% 안팎이었습니다.
+1. **보조 AI를 부를 때는 모델을 꼭 적으세요.** 안 적으면 메인 모델을 그대로 물려받습니다. 제 작업 기록을 확인해 보니 맡긴 일 7건이 전부 가장 비싼 모델로 돌고 있었습니다.
+2. **작은 일은 맡기지 마세요.** 맡기는 것도, 결과를 보고받는 것도 다 사용량이라서 파일 한두 개 읽는 정도는 직접 하는 편이 쌉니다.
+3. **꼭 지켜야 하는 규칙은 글로만 두지 말고 자동 점검 장치(hook)로 만드세요.** 비밀값 검사 설정 파일까지 만들어 뒀는데, 정작 검사는 한 번도 돌지 않던 저장소를 한참 뒤에 발견했습니다. 글로 적은 규칙은 그냥 부탁입니다.
+4. **"다 됐어요"는 실행 결과로 받으세요.** 확인하지 못한 건 "확인 못 함"이라고 쓰게 해야 합니다. 이 키트의 check가 그 일을 합니다.
+5. **한도에 닿기 전에 진행 메모부터 남기세요.** 대화는 끊겨도 파일은 남습니다. 메모만 있으면 다음 세션에서 바로 이어서 할 수 있습니다.
+6. **결정은 선택지와 추천으로 받으세요.** "어떻게 할까요?"라고 열어 두면 오히려 헷갈리는데, "A(추천), B, C 중 고르세요"로 받으면 훨씬 빨리 정해집니다.
+7. **절약 도구의 홍보 숫자는 직접 재 보세요.** 제가 쓰던 사용량 절약 도구도 내세우는 숫자는 컸는데, 실제로 재 보니 2% 안팎이었습니다.
 
 ## 참고한 프로젝트
 
