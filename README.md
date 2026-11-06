@@ -27,7 +27,7 @@ Claude Code의 기본 모델은 요금제마다 다릅니다. 공식 문서에�
 
 출처: [Errors](https://code.claude.com/docs/en/errors#claude-opus-is-not-available-with-the-claude-pro-plan)
 
-두 문서가 서로 맞지 않습니다. 내 Pro 계정에서 Opus가 되는지는 확인하지 못했습니다. 그래서 이 키트는 메인 모델을 Sonnet으로 고정하고, Opus가 안 될 때는 Sonnet이 대신 판정하게 만들었습니다.
+두 문서가 서로 맞지 않고, 만든 사람에게는 시험해 볼 Pro 계정이 없어 실제로 어떤지 확인하지 못했습니다. 그래서 이 키트는 메인 모델을 Sonnet으로 고정하고, Opus가 안 될 때는 Sonnet이 대신 판정하게 만들었습니다. 내 계정에서 Opus가 되는지는 설치 뒤 `/pro-agent:setup`의 연결 시험으로 확인할 수 있습니다.
 
 Opus는 결정이 필요한 순간에만 씁니다. 자문 기능(advisor) 문서는 이렇게 설명합니다.
 
@@ -72,7 +72,7 @@ Opus를 쓸 수 없는 계정이면 같은 요청을 Sonnet으로 다시 보내�
 
 ### 0) 준비
 
-Claude Code 2.1.275 이상이 필요합니다. 버전은 `claude --version`으로 보고, 낮으면 `claude update`를 실행합니다.
+아래 설치 한 줄은 Claude Code 2.1.275 이상에서 됩니다. 버전은 `claude --version`으로 보고, 낮으면 `claude update`로 올리거나 아래의 두 단계 방법을 쓰세요.
 처음이라면 [빠른 시작](https://code.claude.com/docs/en/quickstart)이나 [데스크톱 앱 빠른 시작](https://code.claude.com/docs/en/desktop-quickstart)을 먼저 보세요.
 
 ### 1) 설치 한 줄
@@ -119,7 +119,7 @@ claude plugin install pro-agent --marketplace joymin5655/pro-agent
 ### 4) claude.ai, 데스크톱 앱 채팅, Cowork에서 설치
 
 Customize > Plugins → Add → Add marketplace → `joymin5655/pro-agent` 입력 → pro-agent 선택 → Add 순서입니다.
-플러그인은 계정에 저장됩니다. 다음 Claude Code 세션에서는 동기화된 플러그인으로 내려받아지고, `/reload-plugins`로 바로 적용할 수 있습니다.
+플러그인은 계정에 저장됩니다. 같은 계정으로 로그인한 Claude Code에서는 다음 세션을 시작할 때 동기화된 플러그인으로 내려받아지고, `/reload-plugins`로 바로 적용할 수 있습니다.
 끄거나 지우려면 Customize > Plugins에서 합니다. 출처가 믿을 만한 플러그인만 추가하세요. URL로 추가한 장터(marketplace) 플러그인은 Anthropic이 검토하지 않는다고 안내 페이지에 적혀 있습니다.
 출처: [Plugins overview](https://claude.com/docs/plugins/overview)
 
@@ -182,7 +182,7 @@ Claude Code에서는 `/plugin`의 Installed 탭에서 켜고, 끄고, 업데이�
 명령을 확인한 뒤 내 터미널에서 직접 실행하세요. 자세한 내용은 [docs/safety.md](docs/safety.md)에 있습니다.
 
 **내 데이터는 어디에 있나요?**
-프로젝트의 `agent-notes` 폴더에 있는 파일뿐입니다. 키트가 스스로 어디로 보내는 것은 없습니다.
+계획과 진행 메모는 프로젝트의 `agent-notes` 폴더에만 저장됩니다. 키트의 자동 점검 장치는 아무것도 밖으로 보내지 않습니다. 다만 조사(research)를 맡기면 scout가 웹 검색을 합니다.
 
 ## 추천 유튜브 채널
 

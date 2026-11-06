@@ -18,7 +18,7 @@ Claude Code에 관한 내용은 모두 공식 문서에서 가져왔고, 확인�
 해결 방법으로는 `/model`을 열어 요금제에 포함된 모델을 고르라고 합니다.
 출처: [Errors](https://code.claude.com/docs/en/errors#claude-opus-is-not-available-with-the-claude-pro-plan)
 
-두 안내가 맞지 않아서, 내 Pro 계정에서 Opus가 되는지는 확인하지 못했습니다. 그래서 키트는 메인 모델을 Sonnet으로 두고, 결재 담당(judge)이 Opus를 못 쓰면 Sonnet으로 대신합니다.
+두 안내가 맞지 않고, 만든 사람은 Pro 계정으로 시험해 보지 못했습니다. 그래서 키트는 메인 모델을 Sonnet으로 두고, 결재 담당(judge)이 Opus를 못 쓰면 Sonnet으로 대신합니다.
 
 **자문 기능(advisor).** 메인 Sonnet이 일하다가 막히면 Opus에게 묻는 기능입니다. 문서의 조합표에는 이런 줄이 있습니다.
 
@@ -117,7 +117,7 @@ Cowork 열은 공식 안내서만 근거로 했고 직접 시험하지는 않았
 4. 큽니다 (파일 10개 이상 또는 1시간 이상)
 5. 사용자가 중요하다고 말했습니다
 
-그 밖의 일에는 judge를 부르지 않습니다. Opus는 사용량을 많이 쓰기 때문입니다.
+그 밖의 일에는 judge를 부르지 않습니다. Opus 사용을 꼭 필요한 판단으로 좁히려는 것입니다.
 
 ## 진행 메모 파일
 
