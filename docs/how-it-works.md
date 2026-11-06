@@ -122,6 +122,6 @@ Cowork 열은 공식 안내서만 근거로 했고 직접 시험하지는 않았
 ## 진행 메모 파일
 
 - `agent-notes/PLAN.md`: `plan` 스킬이 만듭니다. 틀은 `skills/plan/PLAN-template.md`에 있습니다. 이미 있으면 덮어쓰기 전에 묻고, 옛 파일은 `agent-notes/archive/`로 옮깁니다.
-- `agent-notes/PROGRESS.md`: `save`와 `do`, `check`가 갱신합니다. 틀은 `skills/save/PROGRESS-template.md`에 있습니다. 끝난 단계 줄은 지우지 않습니다.
+- `agent-notes/PROGRESS.md`: `save`, `do`, `check`가 갱신합니다. 틀은 `skills/save/PROGRESS-template.md`에 있습니다. 끝난 단계 줄은 지우지 않습니다.
 
-두 파일은 프로젝트 폴더 안에만 생기고, 이 저장소에는 올라가지 않습니다(`.gitignore`에 `agent-notes/`가 들어 있습니다).
+두 파일은 지금 작업하는 프로젝트 폴더 안에 생깁니다. 그 프로젝트를 git으로 관리하는데 메모는 저장소에 올리고 싶지 않다면, 그 프로젝트의 `.gitignore`에 `agent-notes/` 한 줄을 넣으세요.
