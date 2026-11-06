@@ -16,4 +16,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Notes
 - The plugin is named `pro-agent` because plugin names may not start with `claude-`.
-- The Bash guard matches dangerous patterns across newlines: the escape sequences `\n`, `\r` and `\t` in the hook input are turned into spaces before matching. `dd ... of=/dev/null` is allowed; other `of=/dev/...` targets are still denied.
+- The Bash guard reads only the `command` string, unescapes it, joins backslash-continued lines and
+  judges it in two views: split at every `;`, `&&`, `||`, `&`, `|`, newline and `$(...)` even inside
+  quotes (so code in strings such as `bash -c '...'` is judged), and split only at top-level separators
+  (so a quoted value or `$(...)` holding `(`, `&` or `;` cannot cut a command off from its later
+  options; this view skips comments and here-document bodies, so an apostrophe in them cannot hide
+  the commands that follow). Each command has its prefixes stripped (shell keywords, leading redirections, `sudo`,
+  `env -S`, `exec -a`, `nice`, `time`, `timeout`, `caffeinate`, `stdbuf`, `ionice`, `setsid`, `bash -c`,
+  with their option values) and is judged by name. `dd` to `/dev/null`, `/dev/zero`, `/dev/stdout`,
+  `/dev/stderr`, `/dev/tty` or `/dev/fd/*` is allowed; other `of=/dev/...` targets are still denied.
+  A download handed to a shell without a pipe (`bash -c "$(curl ...)"`, `bash <(curl ...)`,
+  `eval "$(curl ...)"` and similar forms) is asked about too.
