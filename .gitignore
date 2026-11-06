@@ -1,0 +1,9 @@
+# local work copies
+.worktrees/
+
+# per-project notes the kit writes while you work (kept out of this repo)
+agent-notes/
+
+# OS / editor noise
+.DS_Store
+*.swp
