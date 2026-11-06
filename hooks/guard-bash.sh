@@ -5,17 +5,19 @@
 # catches common dangerous command shapes and can be bypassed (variables,
 # scripts, encodings). Keep Claude Code's own permission prompts turned on.
 #
-# Reads the PreToolUse JSON from stdin, normalizes it by deleting backslashes
-# and quotes, then matches extended regexes. Precedence: deny > ask > allow.
+# Reads the PreToolUse JSON from stdin, normalizes it (the escape sequences
+# \n \r \t become spaces, then backslashes and quotes are deleted), then
+# matches extended regexes. Precedence: deny > ask > allow.
 # Allow prints nothing. Always exits 0.
 set -u
 
 input="$(cat 2>/dev/null || true)"
 [ -z "$input" ] && exit 0
 
-# Delete backslash, double quote and single quote so escaped/quoted JSON
-# becomes plain text.
-text="$(printf '%s' "$input" | tr -d "\\\\\"'")"
+# In the JSON a newline inside the command is the two characters backslash-n
+# (same for \r and \t). Turn those into a space first, then delete backslash,
+# double quote and single quote so escaped/quoted JSON becomes plain text.
+text="$(printf '%s' "$input" | sed 's/\\[nrt]/ /g' | tr -d "\\\\\"'")"
 
 emit() {
   # $1 = deny|ask, $2 = reason (must not contain quotes or backslashes)
@@ -53,8 +55,11 @@ if has "${nb}mkfs(\.[a-zA-Z0-9]+)?([[:space:]]|,|}|\$)"; then
   emit deny "디스크를 포맷하는 명령은 막았습니다."
 fi
 
+# dd to a device is denied; of=/dev/null (benchmarks) is allowed.
 if has "${nb}dd[[:space:]].*of=/dev/"; then
-  emit deny "장치에 직접 쓰는 dd 명령은 막았습니다."
+  if printf '%s' "$text" | grep -Eo 'of=/dev/[^[:space:],}]*' | grep -qvx 'of=/dev/null'; then
+    emit deny "장치에 직접 쓰는 dd 명령은 막았습니다."
+  fi
 fi
 
 if printf '%s' "$text" | grep -Fq ':(){ :|:& };:'; then

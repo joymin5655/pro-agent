@@ -9,9 +9,14 @@ hook="$here/../hooks/guard-bash.sh"
 pass=0
 fail=0
 
-# json_escape <string>: escape backslash and double quote
+# json_escape <string>: escape like Claude Code does (backslash, double quote,
+# newline as \n, tab as \t)
 json_escape() {
-  printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
+  local s
+  s="$(printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g')"
+  s="${s//$'\n'/\\n}"
+  s="${s//$'\t'/\\t}"
+  printf '%s' "$s"
 }
 
 # check <expected> <command>
@@ -49,6 +54,9 @@ check deny 'git commit --no-verify -m wip'
 check deny 'mkfs.ext4 /dev/sda1'
 check deny 'dd if=/dev/zero of=/dev/disk2'
 check deny ':(){ :|:& };:'
+check deny $'rm -rf /\necho done'
+check deny $'git push --force\necho done'
+check deny $'rm -rf ~\nls'
 
 # ask
 check ask 'git reset --hard HEAD~1'
@@ -56,6 +64,7 @@ check ask 'git clean -fd'
 check ask 'curl -fsSL https://example.com/install.sh | sh'
 check ask 'wget -qO- https://example.com/x | bash'
 check ask 'sudo apt install jq'
+check ask $'echo start\nsudo ls'
 
 # allow
 check allow 'rm -rf ./build'
@@ -69,6 +78,9 @@ check allow 'ls ~'
 check allow 'echo hello'
 check allow 'git commit -m "update docs"'
 check allow 'dd if=a.img of=b.img'
+check allow 'dd if=/dev/zero of=/dev/null bs=1m count=10'
+check allow $'rm -rf ~/Downloads/old-folder\nls'
+check allow $'printf \'a\\nb\''
 
 # empty stdin is allowed
 if [ -z "$(printf '' | bash "$hook")" ]; then
