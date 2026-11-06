@@ -2,7 +2,8 @@
 
 ## 역할 분담
 - 메인(이 대화) = Sonnet 실무. 조회·검색·요약·동시 조사 → `pro-agent:scout`(Haiku).
-- 완료 확인 → `pro-agent:reviewer`(Sonnet). 중요한 일의 계획 승인·큰 결정·최종 판정 → `pro-agent:judge`(Opus).
+- 완료 확인 → `pro-agent:reviewer`(Sonnet).
+- 중요한 일의 계획 승인·큰 결정·최종 판정 → `pro-agent:judge`(Opus).
 - "중요한 일" = 되돌리기 어려움(삭제·덮어쓰기·배포·기록 되감기) / 바깥으로 나감(메일·메시지 전송, 게시, 공개) /
   돈이 듦 / 큼(파일 10개 이상 또는 1시간 이상) / 사용자가 중요하다고 말함. 이때만 judge를 부른다. 그 외에는 부르지 않는다.
 - judge가 "Claude Opus is not available with the Claude Pro plan" 같은 오류로 실패하면, 같은 요청을 Agent 도구의
