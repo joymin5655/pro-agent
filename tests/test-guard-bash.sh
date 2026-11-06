@@ -3,6 +3,9 @@
 # asserts the decision (deny / ask / allow).
 # shellcheck disable=SC2016  # literal $HOME is intended in test commands
 set -u
+# Hooks here run with SIGPIPE ignored, as on GitHub Actions runners: a write to
+# a closed pipe then shows up on stderr (a failure below) instead of ending quietly.
+trap '' PIPE
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 hook="$here/../hooks/guard-bash.sh"
@@ -11,7 +14,8 @@ fail=0
 # The hook's stderr goes here: any output on stderr, or a non-zero exit, is a
 # failure (a hook that crashes prints nothing and must not count as "allow").
 errf="$(mktemp)"
-trap 'rm -f "$errf"' EXIT
+outf="$(mktemp)"
+trap 'rm -f "$errf" "$outf"' EXIT
 
 # json_escape <string>: escape like Claude Code does (backslash, double quote,
 # newline as \n, tab as \t)
@@ -236,6 +240,9 @@ check_desc allow 'ls' 'rm -rf /'
 # a long multi-line command (2000 lines, many separators) must stay fast.
 # The JSON text is built directly (newlines written as \n): json_escape's
 # ${s//...} is far too slow on bash 3.2 for a string this long.
+# Each check allows 8s: GitHub's macOS runners took up to 4s, and the hook's own
+# time limit is 10s (the old subshell-per-pipeline version took 32s).
+limit=8
 long='cat > notes.md <<EOF'
 i=0
 while [ "$i" -lt 2000 ]; do
@@ -248,7 +255,7 @@ start=$SECONDS
 out="$(printf '{"tool_name":"Bash","tool_input":{"command":"%s","description":"test"}}' "$long" | bash "$hook" 2>"$errf")"
 rc=$?
 elapsed=$((SECONDS - start))
-if [ -z "$out" ] && [ ! -s "$errf" ] && [ "$rc" -eq 0 ] && [ "$elapsed" -lt 5 ]; then
+if [ -z "$out" ] && [ ! -s "$errf" ] && [ "$rc" -eq 0 ] && [ "$elapsed" -le "$limit" ]; then
   pass=$((pass + 1)); echo "PASS [allow, fast] 2000-line command in ${elapsed}s"
 else
   fail=$((fail + 1)); echo "FAIL [allow, fast] 2000-line command: ${elapsed}s, rc=$rc, output: ${out:0:80}, stderr: $(head -c 80 "$errf")"
@@ -259,28 +266,42 @@ out="$(printf '{"tool_name":"Bash","tool_input":{"command":"%s","description":"t
 rc=$?
 elapsed=$((SECONDS - start))
 case "$out" in *'"permissionDecision":"deny"'*) denied=1 ;; *) denied=0 ;; esac
-if [ "$denied" = 1 ] && [ ! -s "$errf" ] && [ "$rc" -eq 0 ] && [ "$elapsed" -lt 5 ]; then
+if [ "$denied" = 1 ] && [ ! -s "$errf" ] && [ "$rc" -eq 0 ] && [ "$elapsed" -le "$limit" ]; then
   pass=$((pass + 1)); echo "PASS [deny, fast] 2000-line command + dangerous last line in ${elapsed}s"
 else
   fail=$((fail + 1)); echo "FAIL [deny, fast] 2000-line + dangerous last line: ${elapsed}s, rc=$rc, output: ${out:0:80}, stderr: $(head -c 80 "$errf")"
 fi
 
 # third speed test: quoted text holding ( & ; | on every line (view b keeps it in one word)
-quoted='cat > notes.md <<EOF'
+quoted='echo start'
 i=0
 while [ "$i" -lt 2000 ]; do
   quoted="$quoted"'\necho \"line '"$i"': (a) b; c & d | e\"'
   i=$((i + 1))
 done
-quoted="$quoted\\nEOF"
 start=$SECONDS
 out="$(printf '{"tool_name":"Bash","tool_input":{"command":"%s","description":"test"}}' "$quoted" | bash "$hook" 2>"$errf")"
 rc=$?
 elapsed=$((SECONDS - start))
-if [ -z "$out" ] && [ ! -s "$errf" ] && [ "$rc" -eq 0 ] && [ "$elapsed" -lt 5 ]; then
+if [ -z "$out" ] && [ ! -s "$errf" ] && [ "$rc" -eq 0 ] && [ "$elapsed" -le "$limit" ]; then
   pass=$((pass + 1)); echo "PASS [allow, fast] 2000 quoted-separator lines in ${elapsed}s"
 else
   fail=$((fail + 1)); echo "FAIL [allow, fast] 2000 quoted-separator lines: ${elapsed}s, rc=$rc, output: ${out:0:80}, stderr: $(head -c 80 "$errf")"
+fi
+
+# A deny on the first line while over 64KB is still to come: the hook must read
+# all of it, or a writer leaves "write error: Broken pipe" on stderr. stderr goes
+# through a pipe here, so the check also waits for the hook's children (a file
+# can be read before a late child writes to it).
+pad=a
+for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17; do pad="$pad$pad"; done
+err="$(printf '{"tool_name":"Bash","tool_input":{"command":"git push --force origin main\\necho %s","description":"test"}}' "$pad" | bash "$hook" 2>&1 >"$outf")"
+rc=$?
+case "$(cat "$outf")" in *'"permissionDecision":"deny"'*) denied=1 ;; *) denied=0 ;; esac
+if [ "$denied" = 1 ] && [ -z "$err" ] && [ "$rc" -eq 0 ]; then
+  pass=$((pass + 1)); echo "PASS [deny] first line denied, 128KB still to read"
+else
+  fail=$((fail + 1)); echo "FAIL [deny] first line denied, 128KB still to read: rc=$rc, stderr: ${err:0:80}"
 fi
 
 # empty stdin is allowed

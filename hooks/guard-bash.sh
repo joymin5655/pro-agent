@@ -31,6 +31,11 @@ nl="$(printf '\004')"   # newline while unescaping JSON
 
 emit() {
   # $1 = deny|ask, $2 = reason (must not contain quotes or backslashes)
+  # Read the rest of the judging loop's input first: exiting while its writer
+  # still writes leaves "write error: Broken pipe" on stderr where SIGPIPE is
+  # ignored (GitHub Actions runners, for one). Outside the loop stdin is the
+  # event, already read to the end.
+  cat > /dev/null 2>&1
   printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"%s","permissionDecisionReason":"[pro-agent] %s"}}\n' "$1" "$2"
   exit 0
 }
