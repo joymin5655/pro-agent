@@ -1,0 +1,11 @@
+{
+  "description": "pro-agent: 세션 시작 때 운영 규칙과 이어서 할 일을 넣고, 위험한 셸 명령을 막습니다.",
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [ { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh\"", "timeout": 10 } ] }
+    ],
+    "PreToolUse": [
+      { "matcher": "Bash", "hooks": [ { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/guard-bash.sh\"", "timeout": 10 } ] }
+    ]
+  }
+}

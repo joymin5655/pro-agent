@@ -7,3 +7,4 @@ agent-notes/
 # OS / editor noise
 .DS_Store
 *.swp
+evals/results/
