@@ -62,7 +62,7 @@ find_java() {
     cands+=(/opt/homebrew/opt/openjdk/bin/java /usr/local/opt/openjdk/bin/java)
   fi
   for c in "${cands[@]}"; do
-    [ -n "$c" ] && [ -x "$c" ] || continue
+    if [ -z "$c" ] || [ ! -x "$c" ]; then continue; fi
     m="$(java_major "$c")"
     if [ -n "$m" ] && [ "$m" -ge 11 ] 2>/dev/null; then
       java_bin="$c"; java_note="$m"; return 0
@@ -201,7 +201,7 @@ if [ "$mode" = "check" ]; then
 fi
 
 if [ "$mode" = "info" ]; then
-  [ "${#pos[@]}" -eq 1 ] && [ -f "${pos[0]}" ] || die 2 "사용법: pdf-to-note.sh --info <pdf>"
+  if [ "${#pos[@]}" -ne 1 ] || [ ! -f "${pos[0]}" ]; then die 2 "사용법: pdf-to-note.sh --info <pdf>"; fi
   f="${pos[0]}"
   no_line_break "$f" "PDF 경로"
   case "$f" in -*) f="./$f" ;; esac # same guard as the conversion path below
@@ -287,7 +287,7 @@ if [ "$mode" = "convert" ]; then
   fi
   raw="$conv_out/$src_stem.md"
   [ -f "$raw" ] || raw="$(find "$conv_out" -maxdepth 1 -name '*.md' | head -n 1)"
-  [ -n "$raw" ] && [ -f "$raw" ] || die 4 "변환 결과 파일이 없습니다."
+  if [ -z "$raw" ] || [ ! -f "$raw" ]; then die 4 "변환 결과 파일이 없습니다."; fi
   old_images="$(basename "${raw%.md}")_images"
 
   # Page markers get an Obsidian link to the same page of the original; image folder gets the final name.
