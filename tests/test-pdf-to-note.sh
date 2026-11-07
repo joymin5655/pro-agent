@@ -234,7 +234,7 @@ fi
 # 12e) in-vault original whose name has a quote: copied under a safe name, front matter stays valid
 v10="$tmp/v10"; mkdir -p "$v10/inbox"
 cp "$sample" "$v10/inbox/a\"b.pdf"
-run "$v10/inbox/a\"b.pdf" "$v10" > "$tmp/o12f" 2>&1
+run "$v10/inbox/a\"b.pdf" "$v10" > "$tmp/o12f" 2> /dev/null
 assert "in-vault name with a quote converts" $?
 has "$tmp/o12f" 'warn=in-vault-original-unsafe-name:copied'
 assert "unsafe in-vault name is reported on stdout" $?
@@ -254,6 +254,12 @@ run --originals-dir 'Raw#docs' "$sample" "$v1" > /dev/null 2>&1
 assert "originals folder with # exits 2" "$([ $? -eq 2 ] && echo 0 || echo 1)"
 run --notes-dir 'No|tes' "$sample" "$v1" > /dev/null 2>&1
 assert "notes folder with | exits 2" "$([ $? -eq 2 ] && echo 0 || echo 1)"
+run --notes-dir 'a"b' "$sample" "$v1" > /dev/null 2>&1
+assert "notes folder with a quote exits 2" "$([ $? -eq 2 ] && echo 0 || echo 1)"
+run --originals-dir 'x:y' "$sample" "$v1" > /dev/null 2>&1
+assert "originals folder with : exits 2" "$([ $? -eq 2 ] && echo 0 || echo 1)"
+run --notes-dir "No"$'\n'"tes" "$sample" "$v1" > /dev/null 2>&1
+assert "notes folder with a line break exits 2" "$([ $? -eq 2 ] && echo 0 || echo 1)"
 
 # 12g) converter failure or output without page markers: exit 4 and nothing is written
 failstub="$tmp/fail-stub.sh"
@@ -316,13 +322,25 @@ assert "--info with a line break in the name exits 2" "$([ $? -eq 2 ] && echo 0 
 # 12k) two warnings together are two warn= lines
 v14="$tmp/v14"; mkdir -p "$v14/inbox"
 cp "$sample" "$v14/inbox/a\"b.pdf"
-STUB_EMPTY_PAGE=2 run "$v14/inbox/a\"b.pdf" "$v14" > "$tmp/o12k" 2>&1
+STUB_EMPTY_PAGE=2 run "$v14/inbox/a\"b.pdf" "$v14" > "$tmp/o12k" 2> /dev/null
 assert "two warnings: conversion exits 0" $?
 assert "two warnings give exactly two warn= lines" "$([ "$(grep -c '^warn=' "$tmp/o12k")" -eq 2 ] && echo 0 || echo 1)"
 has "$tmp/o12k" 'warn=in-vault-original-unsafe-name:copied'
 assert "two warnings include the unsafe-name warning" $?
 has "$tmp/o12k" 'warn=empty-pages:2'
 assert "two warnings include the empty-pages warning" $?
+
+# 12l) in-vault folder whose name has a line break, PDF passed as a relative path
+v15="$tmp/v15"; mkdir -p "$v15/in"$'\n'"box"
+cp "$sample" "$v15/in"$'\n'"box/x.pdf"
+(cd "$v15/in"$'\n'"box" && run x.pdf "$v15") > "$tmp/o12l" 2> /dev/null
+assert "line break in an in-vault folder name: exits 0" $?
+has "$tmp/o12l" 'warn=in-vault-original-unsafe-name:copied'
+assert "line break in folder name is reported on stdout" $?
+has "$tmp/o12l" 'link=PDF/원본/x.pdf'
+assert "line break in folder name is linked to the copy" $?
+assert "no fake line from the folder name in stdout" "$(! grep -q '^box' "$tmp/o12l" && echo 0 || echo 1)"
+assert "note source: line is one line" "$([ "$(grep -c '^source:' "$v15/PDF/x.md")" -eq 1 ] && ! grep -q '^box' "$v15/PDF/x.md" && echo 0 || echo 1)"
 
 # 13) real converter, only when installed
 if bash "$script" --check > /dev/null 2>&1; then

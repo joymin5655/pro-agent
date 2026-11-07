@@ -9,7 +9,7 @@
 # Folders are relative to <vault>. Defaults: notes "PDF", originals "PDF/원본".
 # --prepare copies the original and writes only the note header (for when Claude reads the PDF itself).
 #
-# Exit codes: 0 ok / 2 bad usage or input / 3 converter or Java missing / 4 conversion failed.
+# Exit codes: 0 ok / 2 bad usage or input, or a save failure / 3 converter or Java missing / 4 conversion failed.
 # Stdout (key=value): note, original, link, pages, converter, images, warn (may appear on several
 # lines), missing (tool or java; with exit code 3).
 #
@@ -136,6 +136,7 @@ safe_stem() {
 
 unsafe_link_path() {
   case "$1" in
+    *$'\n'* | *$'\r'*) return 0 ;;
     *'#'* | *'|'* | *'['* | *']'* | *'^'* | *"\\"* | *':'* | *'*'* | *'?'* | *'"'* | *'<'* | *'>'*) return 0 ;;
   esac
   return 1
@@ -277,6 +278,7 @@ images=0
 if [ "$mode" = "convert" ]; then
   conv_name="$(tool_version "$tool")"
   [ "$custom" -eq 1 ] && conv_name="$(basename "$tool")"
+  conv_name="$(printf '%s' "$conv_name" | head -n 1 | tr -d '\r')"
   conv_out="$work/out"; mkdir -p "$conv_out"
   if [ -n "$java_bin" ]; then PATH="$(dirname "$java_bin"):$PATH"; export PATH; fi
   if ! "$tool" "$pdf_abs" -f markdown -o "$conv_out" -q --markdown-page-separator '<!-- p.%page-number% -->' > "$work/conv.log" 2>&1; then
@@ -328,6 +330,9 @@ fi
 # --- write into the vault (nothing existing is overwritten) ------------------------------------
 # Order: original, images, note last, so a note never points at a missing original or image folder.
 # A failure leaves what was already saved in place (nothing is deleted).
+# Checked again right before writing: conversion can take a while in a shared vault (this narrows the gap; it cannot close it in a shell script).
+check_no_symlink "$vault" "$notes_rel"
+check_no_symlink "$vault" "$orig_rel"
 
 note="$vault/$notes_rel/$stem.md"
 {
