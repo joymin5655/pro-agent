@@ -109,8 +109,12 @@ count_pages() {
 
 safe_stem() {
   # Characters that break Obsidian links or file names become "-".
-  local s
-  s="$(printf '%s' "$1" | tr '\n\r\t' '   ' | tr '#|^[]\\/:*?"<>' '-' | sed 's/^[ .]*//; s/[ .]*$//')"
+  local s c
+  s="$(printf '%s' "$1" | tr '\n\r\t' '   ')"
+  for c in '#' '|' '^' '[' ']' "\\" '/' ':' '*' '?' '"' '<' '>'; do
+    s="${s//"$c"/-}"
+  done
+  s="$(printf '%s' "$s" | sed 's/^[ .]*//; s/[ .]*$//')"
   [ -n "$s" ] || s="document"
   printf '%s' "$s"
 }
