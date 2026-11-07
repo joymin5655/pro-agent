@@ -1,8 +1,8 @@
 {
   "name": "pro-agent",
   "owner": { "name": "joymin", "url": "https://github.com/joymin5655" },
-  "metadata": { "description": "Claude Pro용 개인 에이전트 키트", "version": "0.1.0" },
+  "metadata": { "description": "Claude Pro용 개인 에이전트 키트", "version": "0.2.0" },
   "plugins": [
-    { "name": "pro-agent", "source": "./", "description": "Sonnet이 일하고, Haiku가 찾고, Opus가 결재하는 Claude Pro용 개인 에이전트 키트", "version": "0.1.0", "license": "MIT", "category": "workflow" }
+    { "name": "pro-agent", "source": "./", "description": "Sonnet이 일하고, Haiku가 찾고, Opus가 결재하는 Claude Pro용 개인 에이전트 키트", "version": "0.2.0", "license": "MIT", "category": "workflow" }
   ]
 }
