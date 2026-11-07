@@ -10,7 +10,8 @@
 # --prepare copies the original and writes only the note header (for when Claude reads the PDF itself).
 #
 # Exit codes: 0 ok / 2 bad usage or input / 3 converter or Java missing / 4 conversion failed.
-# Stdout (key=value): note, original, link, pages, converter, images, warn.
+# Stdout (key=value): note, original, link, pages, converter, images, warn (may appear on several
+# lines), missing (tool or java; with exit code 3).
 #
 # Test hooks: PRO_AGENT_ODL = converter command to use instead of opendataloader-pdf (Java is then
 # not checked); PRO_AGENT_JAVA = the only java binary to try.
@@ -97,19 +98,26 @@ need_converter() {
 
 # --- small helpers ----------------------------------------------------------------------------
 
+# Each method's answer counts only when it is an integer >= 1.
+valid_pages() {
+  case "$1" in '' | *[!0-9]*) return 1 ;; esac
+  [ "$1" -ge 1 ] 2>/dev/null
+}
+
 count_pages() {
   local n=""
   if command -v pdfinfo > /dev/null 2>&1; then
     n="$(pdfinfo "$1" 2>/dev/null | awk '/^Pages:/ {print $2}')"
+    valid_pages "$n" || n=""
   fi
   if [ -z "$n" ] && command -v mdls > /dev/null 2>&1; then
     n="$(mdls -raw -name kMDItemNumberOfPages "$1" 2>/dev/null)"
-    [ "$n" = "(null)" ] && n=""
+    valid_pages "$n" || n=""
   fi
   if [ -z "$n" ]; then
     # Last resort: count page objects (works for simple PDFs; unreliable with compressed object streams).
-    n="$(LC_ALL=C grep -a -c '/Type[[:space:]]*/Page[^s]' "$1" 2>/dev/null || true)"
-    [ "${n:-0}" -gt 0 ] 2>/dev/null || n=""
+    n="$(LC_ALL=C grep -a -o -E '/Type[[:space:]]*/Page([^s]|$)' "$1" 2>/dev/null | wc -l | tr -d ' ')"
+    valid_pages "$n" || n=""
   fi
   echo "${n:-unknown}"
 }
@@ -128,7 +136,7 @@ safe_stem() {
 
 unsafe_link_path() {
   case "$1" in
-    *'#'* | *'|'* | *'['* | *']'* | *'^'*) return 0 ;;
+    *'#'* | *'|'* | *'['* | *']'* | *'^'* | *"\\"* | *':'* | *'*'* | *'?'* | *'"'* | *'<'* | *'>'*) return 0 ;;
   esac
   return 1
 }
@@ -137,6 +145,9 @@ check_rel_dir() {
   case "$1" in
     "" | /* | ../* | */../* | */.. | ..) die 2 "폴더는 노트 저장소 안의 상대 경로여야 합니다: $1" ;;
   esac
+  if unsafe_link_path "$1"; then
+    die 2 "폴더 이름에 링크를 깨는 글자(# | ^ [ ] \\ : * ? \" < >)가 있습니다: $1"
+  fi
 }
 
 # --- arguments --------------------------------------------------------------------------------
@@ -148,7 +159,7 @@ while [ $# -gt 0 ]; do
     --prepare) mode="prepare"; shift ;;
     --check) mode="check"; shift ;;
     --info) mode="info"; shift ;;
-    -h | --help) sed -n '2,17p' "$0"; exit 0 ;;
+    -h | --help) sed -n '2,18p' "$0"; exit 0 ;;
     *) pos+=("$1"); shift ;;
   esac
 done
@@ -197,11 +208,13 @@ safe="$(safe_stem "$src_stem")"
 # Original: link in place when it is already in the vault and its path is link-safe; otherwise copy.
 copy_needed=1
 link_path=""
+warns=""
+add_warn() { warns="${warns:+$warns$'\n'}warn=$1"; }
 case "$pdf_abs" in
   "$vault"/*)
     rel="${pdf_abs#"$vault"/}"
     if unsafe_link_path "$rel"; then
-      echo "warn=in-vault-original-unsafe-name:copied" >&2
+      add_warn "in-vault-original-unsafe-name:copied"
     else
       copy_needed=0; link_path="$rel"
     fi
@@ -232,7 +245,6 @@ write_header() {
 body="$work/body.md"
 conv_name="claude"
 images=0
-warns=""
 if [ "$mode" = "convert" ]; then
   conv_name="$(tool_version "$tool")"
   [ "$custom" -eq 1 ] && conv_name="$(basename "$tool")"
@@ -269,14 +281,15 @@ if [ "$mode" = "convert" ]; then
   [ "${marker_count:-0}" -gt 0 ] || die 4 "변환 결과에 쪽 표시가 없습니다(변환 도구 판이 맞지 않을 수 있음)."
   pages="$(grep '^<!-- p\.[0-9]* --> \[\[' "$body" | sed 's/^<!-- p\.\([0-9]*\) .*/\1/' | sort -n | tail -n 1)"
 
-  # Pages with (almost) no text: scanned pages or pictures only.
+  # Pages with (almost) no text: scanned pages or pictures only. The threshold is 20 bytes (LC_ALL=C
+  # counts bytes, not characters; a scanned page has no text at all, so the unit hardly matters).
   empty="$(LC_ALL=C awk '
     function flush() { if (page != "" && chars < 20) list = list (list == "" ? "" : ",") page }
     /^<!-- p\.[0-9]+ -->/ { flush(); page = $0; sub(/^<!-- p\./, "", page); sub(/ -->.*$/, "", page); chars = 0; next }
     /^!\[/ { next }
     { t = $0; gsub(/[ \t#|*_>`-]/, "", t); chars += length(t) }
     END { flush(); print list }' "$body")"
-  [ -n "$empty" ] && warns="empty-pages:$empty"
+  [ -n "$empty" ] && add_warn "empty-pages:$empty"
 
   if [ -d "$conv_out/$old_images" ]; then
     images="$(find "$conv_out/$old_images" -type f | wc -l | tr -d ' ')"
@@ -284,23 +297,28 @@ if [ "$mode" = "convert" ]; then
 fi
 
 # --- write into the vault (nothing existing is overwritten) ------------------------------------
+# Order: original, images, note last, so a note never points at a missing original or image folder.
+# A failure leaves what was already saved in place (nothing is deleted).
 
-mkdir -p "$vault/$notes_rel" || die 2 "노트 폴더를 만들 수 없습니다."
 note="$vault/$notes_rel/$stem.md"
 {
   write_header "$conv_name" "$pages"
   [ -f "$body" ] && cat "$body"
 } > "$work/note.md"
-mv -n "$work/note.md" "$note"
-[ -f "$work/note.md" ] && die 2 "같은 이름의 노트가 생겨 저장하지 않았습니다: $note"
 
+mkdir -p "$vault/$notes_rel" || die 2 "노트 폴더를 만들 수 없습니다."
 if [ "$copy_needed" -eq 1 ]; then
   mkdir -p "$vault/$orig_rel" || die 2 "원본 폴더를 만들 수 없습니다."
-  cp -p "$pdf" "$vault/$orig_rel/$stem.pdf"
+  cp -p "$pdf" "$work/original.pdf" || die 2 "원본 PDF를 복사하지 못했습니다: $pdf"
+  mv -n "$work/original.pdf" "$vault/$orig_rel/$stem.pdf"
+  [ -e "$work/original.pdf" ] && die 2 "원본을 저장하지 못했습니다(같은 이름이 생겼거나 쓰기 실패): $vault/$orig_rel/$stem.pdf"
 fi
 if [ "$images" -gt 0 ]; then
   mv -n "$conv_out/$old_images" "$vault/$notes_rel/${stem}_images"
+  [ -e "$conv_out/$old_images" ] && die 2 "그림 폴더를 저장하지 못했습니다. 이미 저장된 원본은 그대로 있습니다: $vault/$link_path"
 fi
+mv -n "$work/note.md" "$note"
+[ -e "$work/note.md" ] && die 2 "노트를 저장하지 못했습니다. 이미 저장된 원본·그림은 그대로 있습니다: $note"
 
 echo "note=$note"
 echo "original=$vault/$link_path"
@@ -308,5 +326,5 @@ echo "link=$link_path"
 echo "pages=$pages"
 echo "converter=$conv_name"
 echo "images=$images"
-[ -n "$warns" ] && echo "warn=$warns"
+[ -n "$warns" ] && printf '%s\n' "$warns"
 exit 0

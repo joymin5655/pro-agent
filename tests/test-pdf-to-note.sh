@@ -218,6 +218,75 @@ assert "converter gets an absolute PDF path" "$([ "$(cut -c1 "$tmp/firstarg")" =
 (cd "$tmp/dash" && PATH="/usr/bin:/bin" bash "$script" --info -sample.pdf 2>&1) | grep -q '^pages=3$'
 assert "--info reads a name starting with -" $?
 
+# 12d) original folder not writable: exit 2 and no note (the note is saved last)
+v9="$tmp/v9"; mkdir -p "$v9/PDF/원본"
+chmod 555 "$v9/PDF/원본"
+run "$sample" "$v9" > /dev/null 2>&1
+rc=$?
+chmod 755 "$v9/PDF/원본"
+if [ "$(id -u)" -eq 0 ]; then
+  echo "SKIP unwritable original folder (running as root)"
+else
+  assert "unwritable original folder exits 2" "$([ $rc -eq 2 ] && echo 0 || echo 1)"
+  assert "no note is left when the original cannot be saved" "$([ ! -e "$v9/PDF/sample.md" ] && echo 0 || echo 1)"
+fi
+
+# 12e) in-vault original whose name has a quote: copied under a safe name, front matter stays valid
+v10="$tmp/v10"; mkdir -p "$v10/inbox"
+cp "$sample" "$v10/inbox/a\"b.pdf"
+run "$v10/inbox/a\"b.pdf" "$v10" > "$tmp/o12f" 2>&1
+assert "in-vault name with a quote converts" $?
+has "$tmp/o12f" 'warn=in-vault-original-unsafe-name:copied'
+assert "unsafe in-vault name is reported on stdout" $?
+grep -q '^link=PDF/원본/' "$tmp/o12f"
+assert "unsafe in-vault name is linked to the copy" $?
+src_line="$(grep '^source:' "$v10/PDF/a-b.md")"
+quotes="$(printf '%s' "$src_line" | tr -cd '"' | wc -c | tr -d ' ')"
+assert "source line has only its two quotes" "$([ "$quotes" -eq 2 ] && echo 0 || echo 1)"
+
+cp "$sample" "$v10/inbox/c\\d.pdf"
+run "$v10/inbox/c\\d.pdf" "$v10" > "$tmp/o12g" 2>&1
+has "$tmp/o12g" 'warn=in-vault-original-unsafe-name:copied'
+assert "in-vault name with a backslash is copied under a safe name" $?
+
+# 12f) folder names that break links are refused
+run --originals-dir 'Raw#docs' "$sample" "$v1" > /dev/null 2>&1
+assert "originals folder with # exits 2" "$([ $? -eq 2 ] && echo 0 || echo 1)"
+run --notes-dir 'No|tes' "$sample" "$v1" > /dev/null 2>&1
+assert "notes folder with | exits 2" "$([ $? -eq 2 ] && echo 0 || echo 1)"
+
+# 12g) converter failure or output without page markers: exit 4 and nothing is written
+failstub="$tmp/fail-stub.sh"
+printf '#!/bin/sh\nexit 1\n' > "$failstub"; chmod +x "$failstub"
+v11="$tmp/v11"; mkdir -p "$v11"
+PRO_AGENT_ODL="$failstub" bash "$script" "$sample" "$v11" > /dev/null 2>&1
+assert "failing converter exits 4" "$([ $? -eq 4 ] && echo 0 || echo 1)"
+assert "failing converter leaves no PDF folder" "$([ ! -e "$v11/PDF" ] && echo 0 || echo 1)"
+nomark="$tmp/nomark-stub.sh"
+cat > "$nomark" <<'STUB'
+#!/usr/bin/env bash
+in="$1"; shift
+out=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -o) out="$2"; shift 2 ;;
+    *) shift ;;
+  esac
+done
+stem="$(basename "$in")"; stem="${stem%.*}"
+printf 'text without page markers\n' > "$out/$stem.md"
+STUB
+chmod +x "$nomark"
+PRO_AGENT_ODL="$nomark" bash "$script" "$sample" "$v11" > /dev/null 2>&1
+assert "output without page markers exits 4" "$([ $? -eq 4 ] && echo 0 || echo 1)"
+assert "output without page markers leaves no PDF folder" "$([ ! -e "$v11/PDF" ] && echo 0 || echo 1)"
+
+# 12h) a non-numeric page count from pdfinfo is ignored
+badinfo="$tmp/badinfo"; mkdir -p "$badinfo"
+printf '#!/bin/sh\necho "Pages: abc"\n' > "$badinfo/pdfinfo"; chmod +x "$badinfo/pdfinfo"
+PATH="$badinfo:/usr/bin:/bin" bash "$script" --info "$sample" 2>&1 | grep -q '^pages=3$'
+assert "non-numeric pdfinfo answer falls back to a real count" $?
+
 # 13) real converter, only when installed
 if bash "$script" --check > /dev/null 2>&1; then
   v7="$tmp/v7"; mkdir -p "$v7"
