@@ -186,6 +186,38 @@ printf 'not a pdf' > "$tmp/fake.txt"
 run "$tmp/fake.txt" "$v1" > /dev/null 2>&1
 assert "non-PDF file exits 2" "$([ $? -eq 2 ] && echo 0 || echo 1)"
 
+# 12b) converter in ~/.local/bin (uv tool / pipx default) is found even when PATH lacks it
+fakehome="$tmp/home"; mkdir -p "$fakehome/.local/bin"
+printf '#!/bin/sh\nexit 0\n' > "$fakehome/.local/bin/opendataloader-pdf"; chmod +x "$fakehome/.local/bin/opendataloader-pdf"
+fakejava="$tmp/fakejava"
+printf '#!/bin/sh\necho "openjdk version \\"21.0.1\\"" >&2\n' > "$fakejava"; chmod +x "$fakejava"
+HOME="$fakehome" PATH="/usr/bin:/bin" PRO_AGENT_JAVA="$fakejava" bash "$script" --check > "$tmp/o12b" 2>&1
+rc=$?
+assert "--check finds the converter in HOME/.local/bin" "$([ $rc -eq 0 ] && has "$tmp/o12b" "tool=ok $fakehome/.local/bin/opendataloader-pdf"; echo $?)"
+mkdir -p "$tmp/emptyhome"
+HOME="$tmp/emptyhome" PATH="/usr/bin:/bin" PRO_AGENT_JAVA="$fakejava" bash "$script" --check > "$tmp/o12c" 2>&1
+rc=$?
+assert "--check exits 3 when the converter is nowhere" "$([ $rc -eq 3 ] && has "$tmp/o12c" 'tool=missing'; echo $?)"
+rm -f "$fakehome/.local/bin/opendataloader-pdf"
+printf '#!/bin/sh\nexit 0\n' > "$fakehome/.local/bin/opendataloader-pdf.exe"; chmod +x "$fakehome/.local/bin/opendataloader-pdf.exe"
+HOME="$fakehome" PATH="/usr/bin:/bin" PRO_AGENT_JAVA="$fakejava" bash "$script" --check > "$tmp/o12d" 2>&1
+rc=$?
+assert "--check finds opendataloader-pdf.exe in HOME/.local/bin" "$([ $rc -eq 0 ] && has "$tmp/o12d" 'opendataloader-pdf.exe'; echo $?)"
+
+# 12c) the PDF path handed to the converter is absolute (a name starting with "-" is not read as an option)
+argstub="$tmp/arg-stub.sh"
+# shellcheck disable=SC2016 # the stub must expand $1 and $@ itself
+printf '#!/usr/bin/env bash\nprintf "%%s" "$1" > "%s/firstarg"\nexec "%s" "$@"\n' "$tmp" "$stub" > "$argstub"
+chmod +x "$argstub"
+mkdir -p "$tmp/dash" "$tmp/v8"
+cp "$sample" "$tmp/dash/-sample.pdf"
+(cd "$tmp/dash" && PRO_AGENT_ODL="$argstub" bash "$script" -sample.pdf "$tmp/v8" > "$tmp/o12e" 2>&1)
+assert "name starting with - converts" $?
+assert "converter gets an absolute PDF path" "$([ "$(cut -c1 "$tmp/firstarg")" = "/" ] && echo 0 || echo 1)"
+# PATH without Homebrew: no pdfinfo, so the mdls / grep fallbacks must also get a safe path.
+(cd "$tmp/dash" && PATH="/usr/bin:/bin" bash "$script" --info -sample.pdf 2>&1) | grep -q '^pages=3$'
+assert "--info reads a name starting with -" $?
+
 # 13) real converter, only when installed
 if bash "$script" --check > /dev/null 2>&1; then
   v7="$tmp/v7"; mkdir -p "$v7"

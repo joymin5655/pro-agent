@@ -16,8 +16,9 @@ when_to_use: '"이 PDF를 옵시디언에 넣어줘", "PDF를 노트로 만들�
 3. `bash "$S" [옵션] <pdf> <저장소>`를 PDF마다 실행한다. 같은 이름이 있으면 번호가 붙고, 있던 파일은 덮어쓰지 않는다.
    종료 코드 0이면 6번, 3이면 4번(도구 또는 Java 없음), 그 밖의 오류는 메시지를 그대로 알린다.
 4. 변환 도구(opendataloader-pdf)가 없으면 그 자리에서 설치를 권한다(설치는 사용자가 한다).
-   macOS: `brew install openjdk`, `pipx install opendataloader-pdf` / Windows: `winget install EclipseAdoptium.Temurin.21.JDK`,
-   `pipx install opendataloader-pdf` / Java는 11 이상. 원하지 않으면 5번으로 간다.
+   macOS: `brew install openjdk uv`, `uv tool install opendataloader-pdf` / Windows: `winget install EclipseAdoptium.Temurin.21.JDK`,
+   `winget install astral-sh.uv`, `uv tool install opendataloader-pdf`(파이썬 3.11 이상은 uv가 받아 온다). Homebrew가 없으면
+   https://adoptium.net 과 https://docs.astral.sh/uv/ 링크를 준다. 원하지 않으면 5번으로 간다.
 5. Claude가 직접 읽기: PDF 내용이 대화로 Claude에 전달된다고 알린다. 쪽수는 `bash "$S" --info <pdf>`로 본다.
    30쪽을 넘으면 사용량이 크다고 먼저 알리고 계속할지 묻는다. 동의하면 `bash "$S" --prepare <pdf> <저장소>`로
    머리 정보 노트와 원본 복사본을 만들고, Read 도구로 PDF를 20쪽 이하씩 읽어 **요약하지 않고** 옮겨 노트 끝에 덧붙인다.

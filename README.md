@@ -179,8 +179,11 @@ claude.ai/code 같은 클라우드 세션은 내 컴퓨터에 설치한 플러�
 docling, marker, MinerU는 기본 설치에 torch 같은 AI 모델 묶음이 필수라(PyPI 의존성으로 확인) 비개발자용으로는 뺐습니다. 한계: 비교는 문서 2개로만 했고, 표·그림의 품질은 숫자로 재지 않았으며, 그림 속 글자를 읽는 기능(OCR)은 쓰지 않습니다. 스캔 PDF는 비어 나옵니다.
 
 **설치 (선택)**
-- macOS: `brew install openjdk`, `pipx install opendataloader-pdf` (Homebrew의 openjdk는 PATH에 안 잡혀도 키트가 알려진 위치에서 찾습니다)
-- Windows: `winget install EclipseAdoptium.Temurin.21.JDK`, `pipx install opendataloader-pdf` (Windows에서는 직접 시험하지 못했습니다. 확인 못 함)
+변환 도구는 파이썬 3.11 이상이 필요한데(PyPI `requires_python >=3.11`) macOS 기본 파이썬은 3.9라, 파이썬을 알아서 받아 오는 uv로 설치합니다.
+- macOS(Homebrew): `brew install openjdk uv`, `uv tool install opendataloader-pdf` (Homebrew의 openjdk는 PATH에 안 잡혀도 키트가 알려진 위치에서 찾습니다. 설치 뒤 명령을 못 찾으면 `uv tool update-shell`을 실행하고 새 터미널 창을 엽니다)
+- Homebrew가 없는 macOS: Java는 [Adoptium 설치 파일](https://adoptium.net), uv는 [공식 설치 안내](https://docs.astral.sh/uv/)를 따릅니다. 그다음 `uv tool install opendataloader-pdf`
+- Windows: `winget install EclipseAdoptium.Temurin.21.JDK`, `winget install astral-sh.uv`, `uv tool install opendataloader-pdf` (Windows에서는 직접 시험하지 못했습니다. 확인 못 함)
+- PATH가 아직 안 잡혀도 키트는 `~/.local/bin`(uv·pipx 기본 설치 위치)에서 도구를 찾습니다.
 - 설치는 키트가 하지 않습니다. 준비됐는지는 `/pro-agent:setup`이 알려 줍니다.
 
 **도구가 없으면**: 그 자리에서 위 설치를 권합니다. 원하지 않으면 Claude가 PDF를 직접 읽어 같은 형식의 노트로 옮깁니다. 30쪽을 넘으면 사용량을 먼저 알리고 묻습니다. 한 번에 10개 이상 넣을 때는 plan과 judge 승인을 먼저 권합니다.

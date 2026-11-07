@@ -34,6 +34,13 @@ find_tool() {
     [ -x "$PRO_AGENT_ODL" ] && tool="$PRO_AGENT_ODL"
   else
     tool="$(command -v opendataloader-pdf 2>/dev/null || true)"
+    if [ -z "$tool" ]; then
+      # uv tool / pipx default install folder, for when PATH is not updated yet.
+      local c
+      for c in "$HOME/.local/bin/opendataloader-pdf" "$HOME/.local/bin/opendataloader-pdf.exe"; do
+        [ -x "$c" ] && { tool="$c"; break; }
+      done
+    fi
   fi
 }
 
@@ -162,12 +169,15 @@ fi
 
 if [ "$mode" = "info" ]; then
   [ "${#pos[@]}" -eq 1 ] && [ -f "${pos[0]}" ] || die 2 "사용법: pdf-to-note.sh --info <pdf>"
-  echo "pages=$(count_pages "${pos[0]}")"
+  f="${pos[0]}"
+  case "$f" in -*) f="./$f" ;; esac # same guard as the conversion path below
+  echo "pages=$(count_pages "$f")"
   exit 0
 fi
 
 [ "${#pos[@]}" -eq 2 ] || die 2 "사용법: pdf-to-note.sh [--notes-dir DIR] [--originals-dir DIR] [--prepare] <pdf> <vault>"
 pdf="${pos[0]}"
+case "$pdf" in -*) pdf="./$pdf" ;; esac # a name starting with "-" must not be read as an option
 vault_arg="${pos[1]}"
 [ -f "$pdf" ] || die 2 "PDF 파일이 없습니다: $pdf"
 [ "$(head -c 4 "$pdf")" = "%PDF" ] || die 2 "PDF 파일이 아닙니다: $pdf"
@@ -228,7 +238,7 @@ if [ "$mode" = "convert" ]; then
   [ "$custom" -eq 1 ] && conv_name="$(basename "$tool")"
   conv_out="$work/out"; mkdir -p "$conv_out"
   if [ -n "$java_bin" ]; then PATH="$(dirname "$java_bin"):$PATH"; export PATH; fi
-  if ! "$tool" "$pdf" -f markdown -o "$conv_out" -q --markdown-page-separator '<!-- p.%page-number% -->' > "$work/conv.log" 2>&1; then
+  if ! "$tool" "$pdf_abs" -f markdown -o "$conv_out" -q --markdown-page-separator '<!-- p.%page-number% -->' > "$work/conv.log" 2>&1; then
     head -n 5 "$work/conv.log" >&2
     die 4 "변환에 실패했습니다."
   fi
