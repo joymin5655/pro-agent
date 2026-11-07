@@ -31,5 +31,5 @@
 ## 기록과 명령
 - 큰 작업은 `agent-notes/PLAN.md`(계획)와 `agent-notes/PROGRESS.md`(진행 메모)에 남긴다.
   한도가 가깝거나 사용자가 쉬려고 하면 진행 메모를 남긴다.
-- 명령: plan · do · check · decide · research · save · setup (`/pro-agent:<이름>`, 말로 불러도 된다).
+- 명령: plan · do · check · decide · research · save · pdf · ask · setup (`/pro-agent:<이름>`, 말로 불러도 된다).
 - 답은 한국어로 한다(사용자가 다른 언어를 쓰면 그 언어로).
