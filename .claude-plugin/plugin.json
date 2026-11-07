@@ -1,7 +1,7 @@
 {
   "name": "pro-agent",
   "displayName": "Pro Agent",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Claude Pro용 개인 에이전트 키트 — Sonnet이 일하고, Haiku가 찾고, Opus가 결재합니다. A personal agent kit for the Claude Pro plan: Sonnet works, Haiku looks things up, Opus signs off on important decisions.",
   "author": { "name": "joymin", "url": "https://github.com/joymin5655" },
   "homepage": "https://github.com/joymin5655/pro-agent",

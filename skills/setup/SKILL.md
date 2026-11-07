@@ -18,7 +18,12 @@ disable-model-invocation: true
    "연결 시험입니다. '결재 연결 확인'이라고만 답하세요."를 보낸다.
    - 성공 → "결재 담당(Opus) 사용 가능"
    - Opus를 쓸 수 없다는 오류 → "이 요금제에서는 Opus를 쓸 수 없습니다. 결재는 자동으로 Sonnet이 대신합니다. 자문은 `/advisor sonnet` 또는 `/advisor off`로 바꿔 주세요."
-4. 마지막에 세 줄로 안내한다.
+4. (선택) PDF 변환 도구 점검: `bash "${CLAUDE_SKILL_DIR}/../pdf/pdf-to-note.sh" --check`를 실행해 결과를 알린다.
+   `tool=ok`와 `java=ok`면 "PDF를 노트로 넣을 준비가 되어 있습니다". 없으면 설치 방법만 안내하고 설치는 하지 않는다.
+   macOS: `brew install openjdk uv`, `uv tool install opendataloader-pdf` / Windows: `winget install EclipseAdoptium.Temurin.21.JDK`,
+   `winget install astral-sh.uv`, `uv tool install opendataloader-pdf`. Homebrew가 없으면 https://adoptium.net 과
+   https://docs.astral.sh/uv/ 링크를 준다. 선택 사항이라고 덧붙인다: 없어도 `pdf`는 Claude가 PDF를 직접 읽어 노트로 만든다.
+5. 마지막에 세 줄로 안내한다.
    - 큰 일은 "○○ 계획 세워줘"로 시작하세요.
    - 남은 사용량은 `/usage`로 확인하세요.
    - 쉬기 전에는 "여기까지 기록해줘"라고 말하세요.

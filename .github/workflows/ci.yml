@@ -20,6 +20,8 @@ jobs:
         run: bash tests/test-guard-bash.sh
       - name: Session-start hook tests
         run: bash tests/test-session-start.sh
+      - name: PDF-to-note script tests
+        run: bash tests/test-pdf-to-note.sh
       - name: Structure checks
         run: python3 tests/validate-structure.py
 
@@ -28,7 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: shellcheck
-        run: shellcheck hooks/*.sh tests/*.sh
+        run: shellcheck hooks/*.sh tests/*.sh skills/pdf/*.sh
 
   validate:
     runs-on: ubuntu-latest

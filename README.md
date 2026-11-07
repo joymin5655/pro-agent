@@ -127,11 +127,12 @@ Customize > Plugins → Add → Add marketplace → `joymin5655/pro-agent` 입�
 
 | 기능 | Claude Code | Cowork | 일반 채팅 |
 |---|---|---|---|
-| 스킬(plan, do 등 7개) | 동작 | 동작 | 동작 |
+| 스킬(plan, do 등 9개) | 동작 | 동작 | 동작 |
+| PDF 노트 넣기·묻기(pdf, ask) | 동작 | 동작(직접 시험 못 함) | 쓸 수 없음 — 일반 채팅은 파일을 저장할 수 없습니다 |
 | 보조 AI(scout, reviewer, judge) | 동작 | 동작 | 없음 |
 | 세션 시작 규칙, 위험 명령 차단 | 동작 | 동작 | 없음 |
 
-일반 채팅에서는 스킬만 동작합니다. Cowork는 공식 안내만 확인했고 직접 시험하지는 않았습니다.
+일반 채팅에서는 스킬만 동작하고, 파일을 읽고 쓰는 pdf와 ask는 쓸 수 없습니다(일반 채팅이 파일을 저장하지 못한다는 점은 공식 안내서에서 문장으로 직접 확인하지 못했습니다). Cowork는 공식 안내만 확인했고 직접 시험하지는 않았습니다.
 
 ### 5) 클라우드 세션은 안 됩니다
 
@@ -148,11 +149,49 @@ claude.ai/code 같은 클라우드 세션은 내 컴퓨터에 설치한 플러�
 | "A랑 B 중 뭐가 나아?", "결정 도와줘" | 선택지를 표로 비교해 추천 순서로 묻습니다. 중요한 결정이면 judge 의견도 받습니다 | `/pro-agent:decide` |
 | "○○ 조사해줘", "비교해서 정리해줘" | 질문을 나눠 scout가 동시에 조사하고 출처를 붙여 종합합니다 | `/pro-agent:research` |
 | "여기까지 기록해줘", "오늘은 여기까지" | 진행 상황을 파일에 남깁니다 | `/pro-agent:save` |
+| "이 PDF를 옵시디언에 넣어줘" | PDF를 쪽 번호가 붙은 노트로 바꿔 노트 저장소에 넣고, 원본 PDF도 복사합니다 | `/pro-agent:pdf` |
+| "내 노트에서 ○○ 찾아줘" | 노트에서 낱말로 찾아 노트 이름과 원본 PDF 쪽 링크를 붙여 답합니다 | `/pro-agent:ask` |
 | (직접 실행만 가능) | 처음 설정을 점검합니다 | `/pro-agent:setup` |
 
 기본 흐름은 계획 → 실행 → 확인 → 저장입니다.
 메모는 프로젝트 폴더의 `agent-notes/PLAN.md`(계획)와 `agent-notes/PROGRESS.md`(진행 메모)에 남습니다.
 다음에 그 폴더에서 Claude를 열면 "이어서 할 일"을 먼저 알려 줍니다.
+
+## PDF를 옵시디언 노트로
+
+`pdf`는 PDF를 노트 저장소에 마크다운 노트로 넣고, `ask`는 그 노트에서 찾아 근거와 함께 답합니다. 옵시디언이 없어도 마크다운 폴더면 됩니다.
+
+**하는 일**
+- 노트는 `PDF/<이름>.md`, 원본 PDF는 `PDF/원본/<이름>.pdf`에 넣습니다(다른 폴더를 말하면 그곳). 같은 이름이 있으면 덮어쓰지 않고 `-2`처럼 번호를 붙입니다. 원본이 이미 저장소 안에 있으면 복사하지 않고 그 파일에 링크합니다.
+- 노트 맨 위에는 title, source, pages, converted, converter, tags 정보가 들어갑니다.
+- 각 쪽은 `<!-- p.12 --> [[PDF/원본/파일.pdf#page=12|p.12]]` 줄로 시작합니다. 앞쪽은 `ask`가 쪽 번호를 찾는 표시이고, 뒤쪽은 원본 PDF의 그 쪽이 바로 열리는 옵시디언 링크입니다. 쪽 링크 `[[My file.pdf#page=3]]`와 끼워 넣기 `![[Document.pdf#page=3]]` 문법은 [옵시디언 도움말 저장소](https://github.com/obsidianmd/obsidian-help)의 `Release notes/v0.10.8.md`와 `en/Linking notes and files/Embed files.md`에 있습니다(옵시디언 앱에서 직접 눌러 보지는 못했습니다. 확인 못 함). 파일 이름에 `#`, `|`, `[`, `]`, `^`가 있으면 링크가 깨지므로 복사본 이름만 안전하게 바꿉니다.
+- 글자 층이 없는 쪽(스캔)은 내용이 비므로 알려 드립니다. 원하면 그 쪽만 Claude가 읽어 채웁니다.
+- `ask`는 질문을 낱말 묶음 2~5개로 나눠 scout가 동시에 찾게 합니다(노트가 몇 개뿐이면 직접 찾습니다). 뜻 검색(임베딩)과 별도 검색 목록은 쓰지 않는 낱말 검색입니다. 노트에 없으면 지어내지 않고 "노트에서 못 찾음"과 찾아본 낱말을 알립니다.
+
+**추천 변환 도구: opendataloader-pdf** (Apache-2.0, Java 11 이상 필요). 같은 PDF 두 개로 2026-11-07에 만든 사람의 맥(macOS)에서 비교했습니다. 한글 보고서 59쪽과 파워포인트 강의 193쪽이고, 시간은 한 번 잰 값입니다.
+
+| 도구(판, 라이선스) | 59쪽 시간 | 제목 수 | 쪽 표시 | 띄어쓰기 없이 12자 넘게 붙은 한글 덩어리(보고서/강의) |
+|---|---|---|---|---|
+| opendataloader-pdf 2.5.20 (Apache-2.0) | 3.5초 | 172 | 59/59 (옵션 제공) | 5 / 2 |
+| pymupdf4llm 2.1 (AGPL-3.0) | 8.5초 | 114 | 스크립트로 붙여야 함 | 39 / 523 |
+| markitdown 0.1.7 (MIT) | 6.0초 | 0 | 없음 | 8 / 132 |
+
+docling, marker, MinerU는 기본 설치에 torch 같은 AI 모델 묶음이 필수라(PyPI 의존성으로 확인) 비개발자용으로는 뺐습니다. 한계: 비교는 문서 2개로만 했고, 표·그림의 품질은 숫자로 재지 않았으며, 그림 속 글자를 읽는 기능(OCR)은 쓰지 않습니다. 스캔 PDF는 비어 나옵니다.
+
+**설치 (선택)**
+변환 도구는 파이썬 3.11 이상이 필요한데(PyPI `requires_python >=3.11`) macOS 기본 파이썬은 3.9라, 파이썬을 알아서 받아 오는 uv로 설치합니다.
+- macOS(Homebrew): `brew install openjdk uv`, `uv tool install opendataloader-pdf` (Homebrew의 openjdk는 PATH에 안 잡혀도 키트가 알려진 위치에서 찾습니다. 설치 뒤 명령을 못 찾으면 `uv tool update-shell`을 실행하고 새 터미널 창을 엽니다)
+- Homebrew가 없는 macOS: Java는 [Adoptium 설치 파일](https://adoptium.net), uv는 [공식 설치 안내](https://docs.astral.sh/uv/)를 따릅니다. 그다음 `uv tool install opendataloader-pdf`
+- Windows: `winget install EclipseAdoptium.Temurin.21.JDK`, `winget install astral-sh.uv`, `uv tool install opendataloader-pdf` (Windows에서는 직접 시험하지 못했습니다. 확인 못 함)
+- PATH가 아직 안 잡혀도 키트는 `~/.local/bin`(uv·pipx 기본 설치 위치)에서 도구를 찾습니다.
+- 설치는 키트가 하지 않습니다. 준비됐는지는 `/pro-agent:setup`이 알려 줍니다.
+
+**도구가 없으면**: 그 자리에서 위 설치를 권합니다. 원하지 않으면 Claude가 PDF를 직접 읽어 같은 형식의 노트로 옮깁니다. 30쪽을 넘으면 사용량을 먼저 알리고 묻습니다. 한 번에 10개 이상 넣을 때는 plan과 judge 승인을 먼저 권합니다.
+
+**데이터 흐름**
+- 변환 도구로 바꿀 때: PDF는 내 컴퓨터 안에서만 처리하고, 키트는 PDF를 밖으로 보내지 않습니다(도구 자체의 네트워크 사용을 따로 측정하지는 못했습니다. 확인 못 함).
+- Claude가 직접 읽을 때: PDF 내용이 대화로 Claude에 전달됩니다.
+- `ask`: 찾은 노트 부분은 대화로 Claude에 전달되고, scout가 찾을 때는 Haiku가 읽습니다.
 
 ## Pro 한도 아끼기
 
@@ -182,7 +221,7 @@ Claude Code에서는 `/plugin`의 Installed 탭에서 켜고 끄고 업데이트
 명령을 확인한 뒤 내 터미널에서 직접 실행하세요. 자세한 내용은 [docs/safety.md](docs/safety.md)에 있습니다.
 
 **내 데이터는 어디에 있나요?**\
-계획과 진행 메모는 프로젝트의 `agent-notes` 폴더에만 저장됩니다. 키트의 자동 점검 장치는 아무것도 밖으로 보내지 않습니다. 다만 조사(research)를 맡기면 scout가 웹 검색을 합니다.
+계획과 진행 메모는 프로젝트의 `agent-notes` 폴더에만 저장됩니다. PDF 노트와 원본 복사본은 내가 고른 노트 저장소 폴더(기본 `PDF/`)에 저장됩니다. 키트의 자동 점검 장치는 아무것도 밖으로 보내지 않습니다. 다만 조사(research)를 맡기면 scout가 웹 검색을 하고, Claude가 PDF를 직접 읽거나 `ask`로 노트를 읽으면 그 내용이 대화로 Claude에 전달됩니다. 변환 도구로 바꾸는 동안 키트는 PDF를 밖으로 보내지 않습니다(도구 자체의 네트워크 사용은 따로 재지 못했습니다).
 
 ## 추천 유튜브 채널
 
@@ -226,11 +265,11 @@ Claude Code에서는 `/plugin`의 Installed 탭에서 켜고 끄고 업데이트
 ```
 .claude-plugin/   plugin.json, marketplace.json
 agents/           scout, reviewer, judge
-skills/           plan, do, check, decide, research, save, setup
+skills/           plan, do, check, decide, research, save, pdf, ask, setup (pdf/pdf-to-note.sh = PDF 변환 스크립트)
 rules/            operating-rules.md (세션 시작 때 주입)
 hooks/            hooks.json, session-start.sh, guard-bash.sh
-tests/            test-guard-bash.sh, test-session-start.sh, validate-structure.py
-evals/            스킬 발동 시험 5건
+tests/            test-guard-bash.sh, test-session-start.sh, test-pdf-to-note.sh, validate-structure.py (fixtures/ = 시험용 PDF)
+evals/            스킬 발동 시험 9건
 docs/             how-it-works.md, safety.md
 .github/          workflows/ci.yml
 ```
@@ -240,6 +279,7 @@ docs/             how-it-works.md, safety.md
 ```
 bash tests/test-guard-bash.sh
 bash tests/test-session-start.sh
+bash tests/test-pdf-to-note.sh
 python3 tests/validate-structure.py
 claude plugin validate --strict .
 ```
