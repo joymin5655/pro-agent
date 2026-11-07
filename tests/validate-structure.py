@@ -79,7 +79,7 @@ for name, model in expected_models.items():
             fail("%s: tools must not include %s" % (path, bad))
 
 # skills
-for name in ("setup", "plan", "do", "check", "decide", "research", "save"):
+for name in ("setup", "plan", "do", "check", "decide", "research", "save", "pdf", "ask"):
     path = "skills/%s/SKILL.md" % name
     if not os.path.exists(os.path.join(ROOT, path)):
         fail("missing " + path)
@@ -93,6 +93,13 @@ for name in ("setup", "plan", "do", "check", "decide", "research", "save"):
         fail("%s: description + when_to_use over 1536 chars" % path)
     if name == "setup" and fm.get("disable-model-invocation") != "true":
         fail("setup must set disable-model-invocation: true")
+
+# pdf skill helper script
+script_path = os.path.join(ROOT, "skills/pdf/pdf-to-note.sh")
+if not os.path.exists(script_path):
+    fail("missing skills/pdf/pdf-to-note.sh")
+elif not os.access(script_path, os.X_OK):
+    fail("skills/pdf/pdf-to-note.sh is not executable")
 
 # hooks
 try:

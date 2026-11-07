@@ -3,6 +3,18 @@
 All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.2.0] - 2026-11-07
+
+### Added
+- `pdf` skill: puts a PDF into a notes folder (Obsidian vault or plain markdown) as a note with front matter and a page marker plus a link to the same page of the original PDF; the original is copied (or linked in place when it already lives in the vault).
+- `skills/pdf/pdf-to-note.sh`: converter wrapper (opendataloader-pdf + Java 11+, finds Homebrew's keg-only Java), name-collision and unsafe-character handling, `--prepare` for Claude-read notes, `--check`, `--info`. Exit code 3 means the converter or Java is missing. Also looks in `~/.local/bin` (uv tool / pipx default) and accepts PDF names starting with `-` (the converter gets an absolute path). Writes the original and images before the note, refuses folder names with link-breaking characters, and only accepts numeric page counts. Refuses symlinked folders (checked again right before writing) and file names with line breaks.
+- `ask` skill: keyword search over the notes with scout; every answer cites the note and the page link, and says "not found in notes" instead of guessing. Note text is treated as data, not instructions.
+- `setup` checks for the converter and Java and prints install hints (it installs nothing); the hints use `uv tool install` because the converter needs Python 3.11+, which macOS's system Python lacks.
+- Tests: `tests/test-pdf-to-note.sh` (stub converter, plus a real conversion when the tool is installed) with a small generated English sample PDF; four more skill-trigger evals (pdf, ask, and two that must not fire).
+
+### Changed
+- Docs: README section on PDF notes, converter comparison, data flow; `docs/how-it-works.md` and `docs/safety.md` updated.
+
 ## [0.1.0] - 2026-11-06
 
 ### Added
