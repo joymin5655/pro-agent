@@ -141,10 +141,31 @@ unsafe_link_path() {
   return 1
 }
 
+no_line_break() {
+  # no_line_break <value> <what>: a line break would put fake lines into the key=value output and the header.
+  case "$1" in
+    *$'\n'* | *$'\r'*) die 2 "$2에 줄바꿈이 있어 멈춥니다." ;;
+  esac
+}
+
+# Refuses a folder path in the vault that goes through a symlink (it could lead outside the vault).
+check_no_symlink() {
+  # check_no_symlink <vault> <relative folder>
+  local rest="$2" part cur=""
+  while [ -n "$rest" ]; do
+    part="${rest%%/*}"
+    if [ "$part" = "$rest" ]; then rest=""; else rest="${rest#*/}"; fi
+    [ -n "$part" ] || continue
+    cur="${cur:+$cur/}$part"
+    if [ -L "$1/$cur" ]; then die 2 "폴더 경로에 바로가기가 있어 멈춥니다: $cur"; fi
+  done
+}
+
 check_rel_dir() {
   case "$1" in
     "" | /* | ../* | */../* | */.. | ..) die 2 "폴더는 노트 저장소 안의 상대 경로여야 합니다: $1" ;;
   esac
+  no_line_break "$1" "폴더 이름"
   if unsafe_link_path "$1"; then
     die 2 "폴더 이름에 링크를 깨는 글자(# | ^ [ ] \\ : * ? \" < >)가 있습니다: $1"
   fi
@@ -181,6 +202,7 @@ fi
 if [ "$mode" = "info" ]; then
   [ "${#pos[@]}" -eq 1 ] && [ -f "${pos[0]}" ] || die 2 "사용법: pdf-to-note.sh --info <pdf>"
   f="${pos[0]}"
+  no_line_break "$f" "PDF 경로"
   case "$f" in -*) f="./$f" ;; esac # same guard as the conversion path below
   echo "pages=$(count_pages "$f")"
   exit 0
@@ -188,8 +210,10 @@ fi
 
 [ "${#pos[@]}" -eq 2 ] || die 2 "사용법: pdf-to-note.sh [--notes-dir DIR] [--originals-dir DIR] [--prepare] <pdf> <vault>"
 pdf="${pos[0]}"
+no_line_break "$pdf" "PDF 경로"
 case "$pdf" in -*) pdf="./$pdf" ;; esac # a name starting with "-" must not be read as an option
 vault_arg="${pos[1]}"
+no_line_break "$vault_arg" "노트 저장소 경로"
 [ -f "$pdf" ] || die 2 "PDF 파일이 없습니다: $pdf"
 [ "$(head -c 4 "$pdf")" = "%PDF" ] || die 2 "PDF 파일이 아닙니다: $pdf"
 [ -d "$vault_arg" ] || die 2 "노트 저장소 폴더가 없습니다: $vault_arg"
@@ -200,6 +224,9 @@ check_rel_dir "$orig_rel"
 if [ "$mode" = "convert" ]; then need_converter; fi
 
 vault="$(cd "$vault_arg" && pwd -P)"
+no_line_break "$vault" "노트 저장소 경로"
+check_no_symlink "$vault" "$notes_rel"
+check_no_symlink "$vault" "$orig_rel"
 pdf_abs="$(cd "$(dirname "$pdf")" && pwd -P)/$(basename "$pdf")"
 src_name="$(basename "$pdf")"
 src_stem="${src_name%.*}"
@@ -224,8 +251,10 @@ esac
 # Pick a name that overwrites nothing.
 stem="$safe"
 n=1
-while [ -e "$vault/$notes_rel/$stem.md" ] || [ -e "$vault/$notes_rel/${stem}_images" ] ||
-  { [ "$copy_needed" -eq 1 ] && [ -e "$vault/$orig_rel/$stem.pdf" ]; }; do
+# A symlink (even a dangling one) counts as taken: writing through it could create a file elsewhere.
+taken() { [ -e "$1" ] || [ -L "$1" ]; }
+while taken "$vault/$notes_rel/$stem.md" || taken "$vault/$notes_rel/${stem}_images" ||
+  { [ "$copy_needed" -eq 1 ] && taken "$vault/$orig_rel/$stem.pdf"; }; do
   n=$((n + 1)); stem="$safe-$n"
 done
 [ "$copy_needed" -eq 1 ] && link_path="$orig_rel/$stem.pdf"

@@ -287,6 +287,43 @@ printf '#!/bin/sh\necho "Pages: abc"\n' > "$badinfo/pdfinfo"; chmod +x "$badinfo
 PATH="$badinfo:/usr/bin:/bin" bash "$script" --info "$sample" 2>&1 | grep -q '^pages=3$'
 assert "non-numeric pdfinfo answer falls back to a real count" $?
 
+# 12i) symlinked folders inside the vault must not let anything be written outside it
+out1="$tmp/outside1"; mkdir -p "$out1"
+v12="$tmp/v12"; mkdir -p "$v12"
+ln -s "$out1" "$v12/PDF"
+run "$sample" "$v12" > /dev/null 2>&1
+assert "PDF folder that is a symlink exits 2" "$([ $? -eq 2 ] && echo 0 || echo 1)"
+assert "nothing is written outside the vault through a symlinked folder" "$([ -z "$(ls -A "$out1")" ] && echo 0 || echo 1)"
+
+out2="$tmp/outside2"; mkdir -p "$out2"
+v13="$tmp/v13"; mkdir -p "$v13/PDF/원본"
+ln -s "$out2/planted.pdf" "$v13/PDF/원본/sample.pdf"
+run "$sample" "$v13" > "$tmp/o12i" 2>&1
+assert "dangling symlink as the original name still converts" $?
+assert "nothing is created through a dangling symlink" "$([ -z "$(ls -A "$out2")" ] && echo 0 || echo 1)"
+grep -q '^link=PDF/원본/sample-2.pdf$' "$tmp/o12i"
+assert "dangling symlink name counts as taken" $?
+
+# 12j) line breaks in the PDF path are refused
+mkdir -p "$tmp/nl"
+nlpdf="$tmp/nl/a"$'\n'"b.pdf"
+cp "$sample" "$nlpdf"
+run "$nlpdf" "$v1" > /dev/null 2>&1
+assert "PDF name with a line break exits 2" "$([ $? -eq 2 ] && echo 0 || echo 1)"
+bash "$script" --info "$nlpdf" > /dev/null 2>&1
+assert "--info with a line break in the name exits 2" "$([ $? -eq 2 ] && echo 0 || echo 1)"
+
+# 12k) two warnings together are two warn= lines
+v14="$tmp/v14"; mkdir -p "$v14/inbox"
+cp "$sample" "$v14/inbox/a\"b.pdf"
+STUB_EMPTY_PAGE=2 run "$v14/inbox/a\"b.pdf" "$v14" > "$tmp/o12k" 2>&1
+assert "two warnings: conversion exits 0" $?
+assert "two warnings give exactly two warn= lines" "$([ "$(grep -c '^warn=' "$tmp/o12k")" -eq 2 ] && echo 0 || echo 1)"
+has "$tmp/o12k" 'warn=in-vault-original-unsafe-name:copied'
+assert "two warnings include the unsafe-name warning" $?
+has "$tmp/o12k" 'warn=empty-pages:2'
+assert "two warnings include the empty-pages warning" $?
+
 # 13) real converter, only when installed
 if bash "$script" --check > /dev/null 2>&1; then
   v7="$tmp/v7"; mkdir -p "$v7"
